@@ -15,7 +15,7 @@ flag_re_train = True
 # constants
 SAMPLERATE = 22000
 CHUNKSIZE = 2 # seconds
-EPOCHS=10
+EPOCHS=50
 
 # load data
 COUGH_FOLDER="data/cough_added"
@@ -129,23 +129,23 @@ m1 = keras.Sequential()
 # m1.add(keras.layers.Dropout(rate=0.1))
 # m1.add(keras.layers.Dense(2, activation="sigmoid"))
 
-m1.add(keras.layers.Conv2D(128, kernel_size=(3, 3),
+m1.add(keras.layers.Conv2D(32, kernel_size=(2, 2),
                  activation='relu',
                  input_shape=shapeSxx))
-# m1.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+m1.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
 m1.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-m1.add(keras.layers.Dropout(0.25))
+#m1.add(keras.layers.Dropout(0.25))
 m1.add(keras.layers.Flatten())
 m1.add(keras.layers.Dense(128, activation='relu'))
-m1.add(keras.layers.Dropout(0.5))
+#m1.add(keras.layers.Dropout(0.5))
 m1.add(keras.layers.Dense(2, activation='softmax'))
 
-# opt=keras.optimizers.SGD(0.01)
-opt=keras.optimizers.Adam(learning_rate=0.001)
-m1.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+opt=keras.optimizers.SGD(0.01)
+#opt=keras.optimizers.Adam(learning_rate=0.01)
+m1.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 if flag_re_train:
-    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=100)
+    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=20)
 
     cache_dump = {"H": H,"m1": m1}
     pickle.dump(cache_dump, open( "model_2.p", "wb"))
