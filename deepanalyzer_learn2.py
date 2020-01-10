@@ -114,7 +114,7 @@ testX = testX / np.max(testX)
 testY = testY / np.max(testY)
 
 unbeareitet_testX = unbeareitet_testX / np.max(unbeareitet_testX)
-real_testX = real_testX / np.max(real_testX)
+# real_testX = real_testX / np.max(real_testX)
 
 # reshape to fit conv2D
 trainX = trainX.reshape(trainX.shape + (1,))
@@ -129,10 +129,10 @@ m1 = keras.Sequential()
 # m1.add(keras.layers.Dropout(rate=0.1))
 # m1.add(keras.layers.Dense(2, activation="sigmoid"))
 
-m1.add(keras.layers.Conv2D(32, kernel_size=(3, 3),
+m1.add(keras.layers.Conv2D(128, kernel_size=(3, 3),
                  activation='relu',
                  input_shape=shapeSxx))
-m1.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+# m1.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
 m1.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
 m1.add(keras.layers.Dropout(0.25))
 m1.add(keras.layers.Flatten())
@@ -145,7 +145,7 @@ opt=keras.optimizers.Adam(learning_rate=0.001)
 m1.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 if flag_re_train:
-    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=50)
+    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=100)
 
     cache_dump = {"H": H,"m1": m1}
     pickle.dump(cache_dump, open( "model_2.p", "wb"))
@@ -175,4 +175,6 @@ plt.title("Training Loss and Accuracy (Simple NN)")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend()
+plt.savefig("erg.pdf")
 plt.show()
+
