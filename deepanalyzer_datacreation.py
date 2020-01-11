@@ -10,6 +10,7 @@ import scipy.stats
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 import random
+import math
 import glob
 
 # flags
@@ -25,9 +26,12 @@ MAN_LABEL_FILE = "/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano
 
 SAMPLERATE = 22000
 CHUNKSIZE = 2 # seconds
-factor_volume = [0.01, 0.05, 0.07, 0.09, 0.11]
+f=0.1
+factor_volume = [0.2*f, 0.3*f, 0.4*f]
 
+stretch_factors = [0.9, 0.95, 1, 1.05, 1.1]
 
+pitch_steps = [-20, -10, 0, 10, 20]
 # Load audio file
 y, sr = librosa.load(AUDIO_FILE, sr=SAMPLERATE, mono=True)
 N_audio = len(y)
@@ -56,24 +60,37 @@ def check_if_within_manual_labels(input_i, df_man_label):
 if flag_create_cough_data:
     files_cough_examples = glob.glob(FOLDER_COUGHS+"/*")
 
+    # open and cut the cough files to 2s
     y_ces = []
     for ce in files_cough_examples:
         y_ce, sr = librosa.load(ce, sr=SAMPLERATE, mono=True)
 
+        # stretch and ditch the files
+        for sf in stretch_factors:
+            y_ce_stretched = librosa.effects.time_stretch(y_ce, sf)
 
-        # bring snippets to same length
-        if len(y_ce) > CHUNKSIZE*SAMPLERATE:
-            y_ce = y_ce[0:CHUNKSIZE*SAMPLERATE]
-        if len(y_ce) < CHUNKSIZE*SAMPLERATE:
-            y_ce = np.append(y_ce,  [1]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
-            # y_ce.append([0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
+            # pitch the files
+            for ps in pitch_steps:
 
-        y_ces.append(y_ce)
-        print(ce, "length", len(y_ce)/SAMPLERATE)
+                y_ce_stretched_pitched = librosa.effects.pitch_shift(y_ce_stretched, sr, n_steps=ps, bins_per_octave = 24)
+
+                # bring snippets to same length
+                if len(y_ce_stretched_pitched) > CHUNKSIZE*SAMPLERATE:
+                    y_ce_stretched_pitched = y_ce_stretched_pitched[0:CHUNKSIZE*SAMPLERATE]
+                if len(y_ce_stretched_pitched) < CHUNKSIZE*SAMPLERATE:
+                    y_ce_stretched_pitched = np.append(y_ce_stretched_pitched,  [1]*((CHUNKSIZE*SAMPLERATE) - len(y_ce_stretched_pitched)))
+                    # y_ce.append([0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
+
+                y_ces.append(y_ce_stretched_pitched)
+                print(ce, "length", len(y_ce_stretched_pitched)/SAMPLERATE)
+
+
+
 
 
     # loop the main audio to create 2s husten samples
     print("saving snippets", end="")
+    status=""
     for i in range(0, N_audio, CHUNKSIZE*SAMPLERATE):
 
         # choose random cough
@@ -88,19 +105,20 @@ if flag_create_cough_data:
             y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
 
             # add the two audios and save
-            y_incl = y[i:i+CHUNKSIZE*SAMPLERATE] + (factor_volume[rand_idx_vol] * y_cough)
+            y_incl = 1*(y[i:i+CHUNKSIZE*SAMPLERATE]) + (factor_volume[rand_idx_vol] * y_cough)
             librosa.output.write_wav("data/cough_added/cough_added_{}.wav".format(i), y_incl, sr=SAMPLERATE)
 
             if not check_if_within_manual_labels(i, df_man_label):
                 librosa.output.write_wav("data/no_cough/no_cough_{}.wav".format(i), y[i:i+CHUNKSIZE*SAMPLERATE], sr=SAMPLERATE)
 
-        print(".", end="")
+        status +="."
+        print(status)
 #######################################################################################################################
 
 
 ############ get the manually labeled snipets as advanced test data ###################################################
 if flag_create_manual_labeled:
-
+    f = open("data/manual_cough/manual_cough_files.txt", "w")
     idx = 0
     for row in df_man_label.iterrows():
         if row[1][0] != "\\" and row[1][2] == "husten":
@@ -108,7 +126,9 @@ if flag_create_manual_labeled:
             start = float(row[1][0])*SAMPLERATE
             end = start+CHUNKSIZE*SAMPLERATE
 
-            librosa.output.write_wav("data/manual_cough/manual_cough{}.wav".format(idx), y[int(start):int(end)], sr=SAMPLERATE)
+            librosa.output.write_wav("data/manual_cough/manual_cough_{}.wav".format(idx), y[int(start):int(end)], sr=SAMPLERATE)
+            f.write("{nr} {start} {end} {min}:{sec}\n".format(nr=idx, start=start,end=end, min=math.floor(start/SAMPLERATE/60), sec=round((start/SAMPLERATE) % 60, 2)))
             idx+=1
 print(0)
+f.close()
 #######################################################################################################################
