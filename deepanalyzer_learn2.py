@@ -171,6 +171,7 @@ m1.add(keras.layers.Dropout(0.7))
 m1.add(keras.layers.Flatten())
 m1.add(keras.layers.Dense(100, activation='relu'))
 m1.add(keras.layers.Dropout(0.7))
+
 m1.add(keras.layers.Dense(2, activation='softmax'))
 m1.summary()
 
@@ -184,7 +185,6 @@ m1.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["categorical
 if flag_re_train:
 #if False:
     H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=150)
-
     cache_dump = {"H": H,"m1": m1}
     pickle.dump(cache_dump, open( "model_2.p", "wb"))
 
