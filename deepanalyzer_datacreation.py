@@ -22,23 +22,38 @@ flag_create_manual_labeled = True
 # settings
 FOLDER_COUGHS = "data/coughexamples/"
 AUDIO_FILE="/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/Rachmaninoff_ Piano Concerto No. 3 - Anna Fedorova - Live concert HD (152kbit_Opus).ogg.wav"
-MAN_LABEL_FILE = "/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/manual_labeled_hustenandsounds.txt"
+MAN_LABEL_FILE = "/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/manual_labeled_hustenandsounds2.txt"
+CUT_FILE="data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/cutfile.txt"
 
 SAMPLERATE = 22000
 CHUNKSIZE = 2 # seconds
-f=0.1
-factor_volume = [0.2*f, 0.3*f, 0.4*f]
 
-stretch_factors = [0.9, 0.95, 1, 1.05, 1.1]
+factor_volume_music = 1
 
-pitch_steps = [-20, -10, 0, 10, 20]
-# Load audio file
+f=0.3
+factor_volume = [0.2*f, 0.3*f, 0.5*f]
+#factor_volume=[1]
+
+stretch_factors = [0.9, 1, 1.1]
+#stretch_factors = [1]
+pitch_steps = [-5, 0, 5]
+#pitch_steps = [0]
+
+# Load audio file(s)
 y, sr = librosa.load(AUDIO_FILE, sr=SAMPLERATE, mono=True)
 N_audio = len(y)
 # librosa.output.write_wav(AUDIO_FILE+".wav", y, sr=SAMPLERATE)
 
 # load labels
 df_man_label = pd.read_csv(MAN_LABEL_FILE, sep="\t", header=None)
+
+# load cutfile
+df_cutfile = pd.read_csv(CUT_FILE, sep="\t", header=None)
+
+# set cutfile part to 0
+for row in df_cutfile.iterrows():
+    if row[1][2] == "cut":
+        y[int(row[1][0]*SAMPLERATE):int(row[1][1]*SAMPLERATE)] = 0
 
 def check_if_within_manual_labels(input_i, df_man_label):
     idx = 0
@@ -62,6 +77,7 @@ if flag_create_cough_data:
 
     # open and cut the cough files to 2s
     y_ces = []
+    counter = 0
     for ce in files_cough_examples:
         y_ce, sr = librosa.load(ce, sr=SAMPLERATE, mono=True)
 
@@ -81,6 +97,8 @@ if flag_create_cough_data:
                     y_ce_stretched_pitched = np.append(y_ce_stretched_pitched,  [1]*((CHUNKSIZE*SAMPLERATE) - len(y_ce_stretched_pitched)))
                     # y_ce.append([0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
 
+                librosa.output.write_wav("data/coughexamples_changed/changed_{}.wav".format(counter), y_ce_stretched_pitched, sr=SAMPLERATE)
+                counter+=1
                 y_ces.append(y_ce_stretched_pitched)
                 print(ce, "length", len(y_ce_stretched_pitched)/SAMPLERATE)
 
@@ -91,6 +109,8 @@ if flag_create_cough_data:
     # loop the main audio to create 2s husten samples
     print("saving snippets", end="")
     status=""
+    f = open("data/untouched/untouched_files.txt", "w")
+    idx=0
     for i in range(0, N_audio, CHUNKSIZE*SAMPLERATE):
 
         # choose random cough
@@ -105,14 +125,22 @@ if flag_create_cough_data:
             y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
 
             # add the two audios and save
-            y_incl = 1*(y[i:i+CHUNKSIZE*SAMPLERATE]) + (factor_volume[rand_idx_vol] * y_cough)
+            y_incl = factor_volume_music*(y[i:i+CHUNKSIZE*SAMPLERATE]) + (factor_volume[rand_idx_vol] * y_cough)
             librosa.output.write_wav("data/cough_added/cough_added_{}.wav".format(i), y_incl, sr=SAMPLERATE)
 
+            # save no cough version
             if not check_if_within_manual_labels(i, df_man_label):
                 librosa.output.write_wav("data/no_cough/no_cough_{}.wav".format(i), y[i:i+CHUNKSIZE*SAMPLERATE], sr=SAMPLERATE)
 
+            # save untouched version
+            librosa.output.write_wav("data/untouched/untouched_{}.wav".format(i), y[i:i + CHUNKSIZE * SAMPLERATE],sr=SAMPLERATE)
+            f.write("{nr} {start} {end} {min}:{sec}\n".format(nr=idx, start=i, end=i+CHUNKSIZE*SAMPLERATE,
+                                                              min=math.floor(i / SAMPLERATE / 60),
+                                                              sec=round((i / SAMPLERATE) % 60, 2)))
+        idx+=1
         status +="."
         print(status)
+    f.close()
 #######################################################################################################################
 
 
