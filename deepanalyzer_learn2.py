@@ -15,8 +15,11 @@ flag_re_train = True
 # caches
 #traindata = "temp3_goodfit.p"
 #traindata = "temp3.p"
-traindata = "temp6_0.3.p"
+traindata = "temp6_0.5.p"
 #traindata = "only_cough.p"
+traindata = "temp6_0.3.p"
+traindata = "temp7_0.3.p"
+
 
 
 # constants
@@ -151,40 +154,31 @@ testX = testX.reshape(testX.shape + (1,))
 real_testX = real_testX.reshape(real_testX.shape + (1,))
 untouched_testX = untouched_testX.reshape(untouched_testX.shape + (1,))
 
-EPOCHS=500
+EPOCHS=200
+BATCHSIZE=100
 m1 = keras.Sequential()
-#m1.add(keras.layers.Conv2D(32, kernel_size=(3,3), strides=1, activation='relu', input_shape=shapeSxx)) # activity_regularizer=keras.regularizers.l2(0.01)
-#m1.add(keras.layers.Dropout(0.95))
-#m1.add(keras.layers.Conv2D(64, kernel_size=(3,3), strides=1, activation='relu')) # activity_regularizer=keras.regularizers.l2(0.01)
-#m1.add(keras.layers.Dropout(0.95))
-#m1.add(keras.layers.Flatten())
-#m1.add(keras.layers.Dense(2, activation='softmax'))
-#m1.summary()
+m1.add(keras.layers.Conv2D(40, kernel_size=(2,2), strides=1, activation='relu', input_shape=shapeSxx)) # activity_regularizer=keras.regularizers.l2(0.01)
+m1.add(keras.layers.MaxPooling2D((2,2)))
+#m1.add(keras.layers.Dropout(0.5))
 
-m1.add(keras.layers.Conv2D(16, kernel_size=(2,2), strides=1, activation='relu', input_shape=shapeSxx)) # activity_regularizer=keras.regularizers.l2(0.01)
-m1.add(keras.layers.Dropout(0.7))
-m1.add(keras.layers.Conv2D(32, kernel_size=(3,3), strides=1, activation='relu')) # activity_regularizer=keras.regularizers.l2(0.01)
-m1.add(keras.layers.MaxPooling2D(pool_size=(8,8)))
-m1.add(keras.layers.Dropout(0.7))
-#m1.add(keras.layers.Conv2D(64, kernel_size=(3,3), strides=1, activation='relu')) # activity_regularizer=keras.regularizers.l2(0.01)
-#m1.add(keras.layers.Dropout(0.95))
+
 m1.add(keras.layers.Flatten())
-m1.add(keras.layers.Dense(100, activation='relu'))
-m1.add(keras.layers.Dropout(0.7))
-
+#m1.add(keras.layers.Dense(10, activation='relu'))
+#m1.add(keras.layers.Dropout(0.4))
 m1.add(keras.layers.Dense(2, activation='softmax'))
+#m1.add(keras.layers.Dropout(0.1))
 m1.summary()
 
 #opt=keras.optimizers.SGD()
 #opt=keras.optimizers.Adam(learning_rate=0.0002)
-opt=keras.optimizers.Adam(learning_rate=0.0002)
+#opt=keras.optimizers.Adam(learning_rate=0.0002)
 #opt=keras.optimizers.Adagrad()
-#opt=keras.optimizers.Nadam()
+opt=keras.optimizers.Nadam()
 m1.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["categorical_accuracy"])
 
 if flag_re_train:
 #if False:
-    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=150)
+    H = m1.fit(trainX, trainY, validation_data=(testX, testY), epochs=EPOCHS, batch_size=BATCHSIZE)
     cache_dump = {"H": H,"m1": m1}
     pickle.dump(cache_dump, open( "model_2.p", "wb"))
 

@@ -22,8 +22,15 @@ flag_create_manual_labeled = True
 # settings
 FOLDER_COUGHS = "data/coughexamples/"
 AUDIO_FILE="/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/Rachmaninoff_ Piano Concerto No. 3 - Anna Fedorova - Live concert HD (152kbit_Opus).ogg.wav"
-MAN_LABEL_FILE = "/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/manual_labeled_hustenandsounds2.txt"
+MAN_LABEL_FILE = "/home/ga36raf/Documents/coughanalyzer/data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/manual_labeled_hustenandsounds3.txt"
 CUT_FILE="data/Rachmaninoff_ Piano Concerto No  3 - Anna Fedorova - Live concert HD/cutfile.txt"
+
+database = [
+    {"audio_file": AUDIO_FILE, "man_label_file": MAN_LABEL_FILE, "cut_file": CUT_FILE},
+    {"audio_file": "data/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/Joseph Haydn - Piano Concerto No. 11 in D major, Hob. XVIII_11 - Mikhail Pletnev (152kbit_Opus).wav",
+     "man_label_file": "data/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/manual_labeled.txt",
+     "cut_file": "data/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/cut_file.txt"}
+]
 
 SAMPLERATE = 22000
 CHUNKSIZE = 2 # seconds
@@ -31,7 +38,7 @@ CHUNKSIZE = 2 # seconds
 factor_volume_music = 1
 
 f=0.3
-factor_volume = [0.2*f, 0.3*f, 0.5*f]
+factor_volume = [0.2*f, 0.25*f, 0.3*f]
 #factor_volume=[1]
 
 stretch_factors = [0.9, 1, 1.1]
@@ -39,21 +46,30 @@ stretch_factors = [0.9, 1, 1.1]
 pitch_steps = [-5, 0, 5]
 #pitch_steps = [0]
 
-# Load audio file(s)
-y, sr = librosa.load(AUDIO_FILE, sr=SAMPLERATE, mono=True)
+ys = []
+df_man_labels = pd.DataFrame()
+for db in database:
+    # Load audio file(s)
+    y, sr = librosa.load(db["audio_file"], sr=SAMPLERATE, mono=True)
+    # librosa.output.write_wav(AUDIO_FILE+".wav", y, sr=SAMPLERATE)
+
+    # load labels
+    df_man_label = pd.read_csv(MAN_LABEL_FILE, sep="\t", header=None)
+    df_man_labels = df_man_labels.append(df_man_label)
+
+    # load cutfile
+    df_cutfile = pd.read_csv(CUT_FILE, sep="\t", header=None)
+
+    # set cutfile part to 0
+    for row in df_cutfile.iterrows():
+        if row[1][2] == "cut":
+            y[int(row[1][0]*SAMPLERATE):int(row[1][1]*SAMPLERATE)] = 0
+
+    ys.extend(y)
+
+y = ys
 N_audio = len(y)
-# librosa.output.write_wav(AUDIO_FILE+".wav", y, sr=SAMPLERATE)
 
-# load labels
-df_man_label = pd.read_csv(MAN_LABEL_FILE, sep="\t", header=None)
-
-# load cutfile
-df_cutfile = pd.read_csv(CUT_FILE, sep="\t", header=None)
-
-# set cutfile part to 0
-for row in df_cutfile.iterrows():
-    if row[1][2] == "cut":
-        y[int(row[1][0]*SAMPLERATE):int(row[1][1]*SAMPLERATE)] = 0
 
 def check_if_within_manual_labels(input_i, df_man_label):
     idx = 0
@@ -88,19 +104,23 @@ if flag_create_cough_data:
             # pitch the files
             for ps in pitch_steps:
 
-                y_ce_stretched_pitched = librosa.effects.pitch_shift(y_ce_stretched, sr, n_steps=ps, bins_per_octave = 24)
+                    y_ce_stretched_pitched = librosa.effects.pitch_shift(y_ce_stretched, sr, n_steps=ps, bins_per_octave = 24)
 
-                # bring snippets to same length
-                if len(y_ce_stretched_pitched) > CHUNKSIZE*SAMPLERATE:
-                    y_ce_stretched_pitched = y_ce_stretched_pitched[0:CHUNKSIZE*SAMPLERATE]
-                if len(y_ce_stretched_pitched) < CHUNKSIZE*SAMPLERATE:
-                    y_ce_stretched_pitched = np.append(y_ce_stretched_pitched,  [1]*((CHUNKSIZE*SAMPLERATE) - len(y_ce_stretched_pitched)))
-                    # y_ce.append([0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
+                    # change volume
+                    for vol in factor_volume:
+                        y_ce_stretched_pitched_vol = vol * y_ce_stretched_pitched
 
-                librosa.output.write_wav("data/coughexamples_changed/changed_{}.wav".format(counter), y_ce_stretched_pitched, sr=SAMPLERATE)
-                counter+=1
-                y_ces.append(y_ce_stretched_pitched)
-                print(ce, "length", len(y_ce_stretched_pitched)/SAMPLERATE)
+                        # bring snippets to same length
+                        if len(y_ce_stretched_pitched_vol) > CHUNKSIZE*SAMPLERATE:
+                            y_ce_stretched_pitched_vol = y_ce_stretched_pitched_vol[0:CHUNKSIZE*SAMPLERATE]
+                        if len(y_ce_stretched_pitched_vol) < CHUNKSIZE*SAMPLERATE:
+                            y_ce_stretched_pitched_vol = np.append(y_ce_stretched_pitched_vol,  [0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce_stretched_pitched_vol)))
+                            # y_ce.append([0]*((CHUNKSIZE*SAMPLERATE) - len(y_ce)))
+
+                        librosa.output.write_wav("data/coughexamples_changed/changed_{}_s{}_p{}_v{}.wav".format(counter, sf, ps, vol), y_ce_stretched_pitched_vol, sr=SAMPLERATE)
+                        counter+=1
+                        y_ces.append(y_ce_stretched_pitched_vol)
+                        print(ce, "length", len(y_ce_stretched_pitched_vol)/SAMPLERATE)
 
 
 
@@ -111,6 +131,7 @@ if flag_create_cough_data:
     status=""
     f = open("data/untouched/untouched_files.txt", "w")
     idx=0
+    y_ges_piece_with_cough = []
     for i in range(0, N_audio, CHUNKSIZE*SAMPLERATE):
 
         # choose random cough
@@ -125,15 +146,16 @@ if flag_create_cough_data:
             y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
 
             # add the two audios and save
-            y_incl = factor_volume_music*(y[i:i+CHUNKSIZE*SAMPLERATE]) + (factor_volume[rand_idx_vol] * y_cough)
-            librosa.output.write_wav("data/cough_added/cough_added_{}.wav".format(i), y_incl, sr=SAMPLERATE)
+            y_incl = factor_volume_music*(y[i:i+CHUNKSIZE*SAMPLERATE]) + (y_cough)
+            y_ges_piece_with_cough.extend(y_incl)
+            librosa.output.write_wav("data/cough_added/cough_added_{}.wav".format(i), np.array(y_incl), sr=SAMPLERATE)
 
             # save no cough version
-            if not check_if_within_manual_labels(i, df_man_label):
-                librosa.output.write_wav("data/no_cough/no_cough_{}.wav".format(i), y[i:i+CHUNKSIZE*SAMPLERATE], sr=SAMPLERATE)
+            if not check_if_within_manual_labels(i, df_man_labels):
+                librosa.output.write_wav("data/no_cough/no_cough_{}.wav".format(i), np.array(y[i:i+CHUNKSIZE*SAMPLERATE]), sr=SAMPLERATE)
 
             # save untouched version
-            librosa.output.write_wav("data/untouched/untouched_{}.wav".format(i), y[i:i + CHUNKSIZE * SAMPLERATE],sr=SAMPLERATE)
+            librosa.output.write_wav("data/untouched/untouched_{}.wav".format(i), np.array(y[i:i + CHUNKSIZE * SAMPLERATE]),sr=SAMPLERATE)
             f.write("{nr} {start} {end} {min}:{sec}\n".format(nr=idx, start=i, end=i+CHUNKSIZE*SAMPLERATE,
                                                               min=math.floor(i / SAMPLERATE / 60),
                                                               sec=round((i / SAMPLERATE) % 60, 2)))
@@ -141,6 +163,7 @@ if flag_create_cough_data:
         status +="."
         print(status)
     f.close()
+    librosa.output.write_wav(AUDIO_FILE+"_coughs_added.wav", np.array(y_ges_piece_with_cough),sr=SAMPLERATE)
 #######################################################################################################################
 
 
@@ -148,13 +171,13 @@ if flag_create_cough_data:
 if flag_create_manual_labeled:
     f = open("data/manual_cough/manual_cough_files.txt", "w")
     idx = 0
-    for row in df_man_label.iterrows():
+    for row in df_man_labels.iterrows():
         if row[1][0] != "\\" and row[1][2] == "husten":
             print(row[1][0])
             start = float(row[1][0])*SAMPLERATE
             end = start+CHUNKSIZE*SAMPLERATE
 
-            librosa.output.write_wav("data/manual_cough/manual_cough_{}.wav".format(idx), y[int(start):int(end)], sr=SAMPLERATE)
+            librosa.output.write_wav("data/manual_cough/manual_cough_{}.wav".format(idx), np.array(y[int(start):int(end)]), sr=SAMPLERATE)
             f.write("{nr} {start} {end} {min}:{sec}\n".format(nr=idx, start=start,end=end, min=math.floor(start/SAMPLERATE/60), sec=round((start/SAMPLERATE) % 60, 2)))
             idx+=1
 print(0)
