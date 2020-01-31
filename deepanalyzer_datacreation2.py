@@ -132,7 +132,7 @@ for i_dbentry, db in enumerate(database):
     for idx, block_y in enumerate(stream):
 
         if db["cut_file"] != None:
-            skipp = check_if_within_cutfile(idx*CHUNKSIZE, df_cutfile)
+            skipp = check_if_within_cutfile(idx*CHUNKSIZE*SAMPLERATE, df_cutfile)
         else:
             skipp = False
 
