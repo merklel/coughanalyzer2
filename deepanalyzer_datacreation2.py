@@ -14,6 +14,7 @@ import random
 import math
 import glob
 import pickle
+import matplotlib
 
 # settings
 SAMPLERATE = 16000
@@ -101,7 +102,7 @@ def foreground_Separation(y, sr):
     return S_foreground
 
 
-
+counter = 0
 for db in database:
 
     db["audio_file"]
@@ -116,16 +117,26 @@ for db in database:
         random_cough_file = coughexamples_files[rand_idx_cough]
 
         # open the random cough file
-        y_cough = librosa.load(random_cough_file, sr=SAMPLERATE, mono=True)
+        y_cough, sr_cough = librosa.load(random_cough_file, sr=SAMPLERATE, mono=True)
 
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
 
         pre_gap = [0] * random.randint(0, 0.5*SAMPLERATE) # up to half a second pre gap possible
-        y_cough = np.append(pre_gap, y_cough[1])
+        y_cough = np.append(pre_gap, y_cough)
         y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
+        if len(y_cough) < CHUNKSIZE * SAMPLERATE:
+            y_cough = np.append(y_cough,[0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
 
-        print(y_cough)
+        # print(y_cough)
         print(len(y), len(y_cough))
         # add the two audios and save
-        #y_incl = 1 * np.array(y) + y_cough
+        y_incl = 1 * np.array(y) + y_cough
+
+        Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
+        Sxx_no_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
+        matplotlib.image.imsave("data/cough_learn_histo/no_cough_{}.png".format(counter), Sxx_no_cough)
+        matplotlib.image.imsave("data/cough_learn_histo/cough_{}.png".format(counter), Sxx_cough)
+
+        counter+=1
+
 
