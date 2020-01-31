@@ -159,8 +159,8 @@ for db in database:
 
             Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
             Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
-            matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough)
-            matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough)
+            matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
+            matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
 
             counter+=1
 
