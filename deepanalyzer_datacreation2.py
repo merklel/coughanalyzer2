@@ -134,7 +134,7 @@ for db in database:
         if db["cut_file"] != None:
             skipp = check_if_within_cutfile(idx*CHUNKSIZE, df_cutfile)
         else:
-            skipp == False
+            skipp = False
 
         if not skipp:
             # get random cough sample
