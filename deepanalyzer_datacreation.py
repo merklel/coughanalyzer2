@@ -17,11 +17,11 @@ import pickle
 
 # flags
 # 1. create cough and no cough data
-flag_create_cough_data = False
+flag_create_cough_data = True
 # 2. create manual labeled snippets
-flag_create_manual_labeled = False
+flag_create_manual_labeled = True
 # 3. create crossvalid files
-flag_create_crossvalid_files=False
+flag_create_crossvalid_files=True
 # 4. Preprocessing Flag
 flag_pp = True
 
@@ -31,9 +31,11 @@ flag_pp = True
 traindata = "temp10_0.3.p"
 traindata = "cough_vs_music.p"
 traindata = "temp11_0.3.p"
+traindata = "temp12_short_0.3.p"
+traindata = "temp13_16khz_short_0.3.p"
 
 # settings
-SAMPLERATE = 22000
+SAMPLERATE = 16000
 CHUNKSIZE = 2 # seconds
 
 factor_volume_music = 1
@@ -61,14 +63,14 @@ database = [
     {"audio_file": "data/raw_studio/shostakovich CD08 - Symphony 10/shostakovich_10_studio.wav",
      "man_label_file": None,
      "cut_file": None},
-    {"audio_file": "data/raw_studio/Daniel Barenboim - Beethoven Concerto for Violin and Orchestra in D Major, Op. 61 (2017)/beethoven_violin_studio.wav",
-     "man_label_file": None,
-     "cut_file": None},
-    {
-        "audio_file":"data/raw_studio/Haydn cd2 n.41, 58/haydn_41_58.wav",
-        "man_label_file": None,
-        "cut_file": None
-    }
+    # {"audio_file": "data/raw_studio/Daniel Barenboim - Beethoven Concerto for Violin and Orchestra in D Major, Op. 61 (2017)/beethoven_violin_studio.wav",
+    #  "man_label_file": None,
+    #  "cut_file": None},
+    # {
+    #     "audio_file":"data/raw_studio/Haydn cd2 n.41, 58/haydn_41_58.wav",
+    #     "man_label_file": None,
+    #     "cut_file": None
+    # }
 ]
 
 # The files in crossvalid are not used for training/valid purposes. Its a second round of validation with real examples
@@ -274,8 +276,9 @@ if flag_create_manual_labeled:
     f.close()
 #######################################################################################################################
 
-############## Create crossvalid data #################################################################################
 
+
+############## Create crossvalid data #################################################################################
 print("* saving crossvalidation files")
 if flag_create_crossvalid_files:
     for db_cv in database_crossvalid:
@@ -410,6 +413,6 @@ if flag_pp:
 
     # X_and_label = np.concatenate((trainX, trainY),axis=1)
     cache_dump = {"real_testX": real_testX,"real_testY":real_testY, "trainX": trainX, "trainY": trainY, "untouched_testX": untouched_testX,"crossvalids_testX": crossvalids_testX}
-    pickle.dump(cache_dump, open(traindata, "wb"))
+    pickle.dump(cache_dump, open(traindata, "wb"), protocol=4)
 
 print("Finished!")

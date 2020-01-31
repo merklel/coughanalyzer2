@@ -23,13 +23,17 @@ traindata = "temp6_0.3.p"
 traindata = "temp7_0.3.p"
 traindata = "temp8_0.3.p"
 traindata = "temp9_0.6.p"
-shapeSxx = (251, 88, 1)
+# shapeSxx = (251, 88, 1)
 traindata = "temp10_0.3.p"
 traindata="cough_vs_music.p"
+traindata = "temp11_0.3.p"
+traindata = "temp12_short_0.3.p"
 
+shapeSxx = (1001, 107, 1)
+traindata = "temp13_16khz_short_0.3.p"
 
 # constants
-SAMPLERATE = 22000
+SAMPLERATE = 16000
 CHUNKSIZE = 2 # seconds
 
 # load data
@@ -41,7 +45,7 @@ UNTOUCHED="data/untouched"
 # files to crossvalidate. these have not been used for training
 # CROSSVALID = "data/crossvalidation/Martha Argerich_ Ravel - Piano Concerto in G Major _ Nobel Prize Concert 2009 (152kbit_Opus)"
 CROSSVALID = "data/crossvalidation/Beethoven _ Concerto pour piano n°3 "
-CROSSVALID = "data/crossvalidation/Rachmaninoff_ Piano Concerto no"
+#CROSSVALID = "data/crossvalidation/Rachmaninoff_ Piano Concerto no"
 
 cough_files = glob.glob(COUGH_FOLDER+"/*.wav")
 no_cough_files = glob.glob(NO_COUGH_FOLDER+"/*.wav")
@@ -151,6 +155,7 @@ crossvalids_testX = cache_dump["crossvalids_testX"]
 #trainX = trainX[0:1700]
 #trainY = trainY[0:1700]
 
+# shapeSxx = (1001, 147, 1)
 
 # shapeSxx = (151, 88, 1)
 # trainX = trainX[:,100:251,0:88]
@@ -166,9 +171,9 @@ trainY = trainY[400:]
 #standardize
 trainX = (trainX - np.mean(trainX)) / np.std(trainX)
 testX = (testX -np.mean(testX)) / np.std(testX)
-
 untouched_testX = (untouched_testX - np.mean(untouched_testX)) / np.std(untouched_testX)
 real_testX = (real_testX - np.mean(real_testX)) / np.std(real_testX)
+crossvalids_testX = (crossvalids_testX - np.mean(crossvalids_testX)) / np.std(crossvalids_testX)
 
 # reshape to fit conv2D
 trainX = trainX.reshape(trainX.shape + (1,))
@@ -177,40 +182,40 @@ real_testX = real_testX.reshape(real_testX.shape + (1,))
 untouched_testX = untouched_testX.reshape(untouched_testX.shape + (1,))
 crossvalids_testX = crossvalids_testX.reshape(crossvalids_testX.shape + (1,))
 
-EPOCHS=200
-BATCHSIZE=50
+
+EPOCHS=100
+BATCHSIZE=20
+da = 0.35
 m1 = keras.Sequential()
-m1.add(keras.layers.Conv2D(20, kernel_size=(2,2), strides=1, activation='relu', input_shape=shapeSxx)) # activity_regularizer=keras.regularizers.l2(0.01)
-m1.add(keras.layers.Conv2D(40, kernel_size=(2,2), strides=1, activation='relu')) # activity_regularizer=keras.regularizers.l2(0.01)
-m1.add(keras.layers.Conv2D(40, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.Conv2D(60, kernel_size=(2,2), strides=1, activation='relu')) # activity_regularizer=keras.regularizers.l2(0.01)
-m1.add(keras.layers.MaxPooling2D((2,2)))
-m1.add(keras.layers.Dropout(0.5))
-
-m1.add(keras.layers.Conv2D(20, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.Conv2D(60, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.MaxPooling2D((2,2)))
-m1.add(keras.layers.Dropout(0.5))
-
-m1.add(keras.layers.Conv2D(10, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.Conv2D(20, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.MaxPooling2D((2,2)))
-m1.add(keras.layers.Dropout(0.5))
-
+m1.add(keras.layers.Conv2D(5, kernel_size=(2,2), strides=1, activation='relu', input_shape=shapeSxx)) # kernel_regularizer=keras.regularizers.l1_l2()
+m1.add(keras.layers.Conv2D(5, kernel_size=(3,3), strides=1, activation='relu'))
+m1.add(keras.layers.MaxPooling2D((20,20)))
 
 m1.add(keras.layers.Flatten())
+m1.add(keras.layers.BatchNormalization())
+
+#m1.add(keras.layers.Dense(20, activation='relu'))
+#m1.add(keras.layers.Dense(20, activation='relu'))
+
+#m1.add(keras.layers.Dropout(0.1))
+#m1.add(keras.layers.BatchNormalization())
 m1.add(keras.layers.Dense(10, activation='relu'))
-m1.add(keras.layers.Dropout(0.4))
-m1.add(keras.layers.Dense(10, activation='relu'))
-m1.add(keras.layers.Dropout(0.4))
+m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.Dense(5, activation='relu'))
+m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.Dense(5, activation='relu'))
+m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.Dense(5, activation='relu'))
+m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.BatchNormalization())
 m1.add(keras.layers.Dense(2, activation='softmax'))
 #m1.add(keras.layers.Dropout(0.1))
 m1.summary()
 
 
 #opt=keras.optimizers.SGD(learning_rate=0.0003)
-opt=keras.optimizers.Adam(learning_rate=0.0003)
-#opt=keras.optimizers.Adam()
+#opt=keras.optimizers.Adam(lr=0.003)
+opt=keras.optimizers.Adam()
 #opt=keras.optimizers.Adagrad()
 #opt=keras.optimizers.Nadam()
 m1.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["categorical_accuracy"])
@@ -266,28 +271,10 @@ print("* analyzing: {}".format(CROSSVALID))
 f=open("untouched_labels_crossvalid.txt", "w")
 for idx, line in enumerate(m1.predict(crossvalids_testX)):
     print(idx, line)
-    if line[1] > 0.384:
+    if line[1] > 0.6:
         f.write("{}\t{}\t{}\n".format(idx*2, (idx*2)+2, line[1]))
 f.close()
 
 
 
-FOLDER_COUGH_CHANGED = "data/coughexamples_changed"
-
-cough_only_files = glob.glob(FOLDER_COUGH_CHANGED+"/*.wav")
-
-ys = []
-for cof in cough_only_files:
-    y, sr = librosa.load(cof, sr=SAMPLERATE, mono=True)
-    fxx, txx, Sxx = signal.spectrogram(y, SAMPLERATE, window=('tukey', 0.1), nperseg=500, noverlap=0,
-                                       scaling="spectrum", mode="magnitude")
-    ys.append(Sxx)
-cough_only_testX = np.stack(ys)
-
-cough_only_testX = cough_only_testX.reshape(cough_only_testX.shape + (1,))
-
-for idx, line in enumerate(m1.predict(cough_only_testX)):
-    print(idx, line)
-
-plt.show()
 
