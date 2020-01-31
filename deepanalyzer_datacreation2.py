@@ -155,14 +155,16 @@ for db in database:
             # print(y_cough)
             print(len(y), len(y_cough))
             # add the two audios and save
-            y_incl = 1 * np.array(y) + y_cough
 
-            Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
-            Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
-            matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
-            matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
+            if len(y) == len(y_cough):
+                y_incl = 1 * np.array(y) + y_cough
 
-            counter+=1
+                Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
+                Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
+                matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
+                matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
+
+                counter+=1
 
 
 #########################################################################################################################
@@ -181,6 +183,6 @@ for db in database_crossvalid:
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
         
         Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
-        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough)
+        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), cmap="gray")
 
         counter+=1
