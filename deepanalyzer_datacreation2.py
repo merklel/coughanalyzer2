@@ -35,14 +35,14 @@ database = [
     {"audio_file": "data/raw_studio/shostakovich CD08 - Symphony 10/shostakovich_10_studio.wav",
      "man_label_file": None,
      "cut_file": None},
-    # {"audio_file": "data/raw_studio/Daniel Barenboim - Beethoven Concerto for Violin and Orchestra in D Major, Op. 61 (2017)/beethoven_violin_studio.wav",
-    #  "man_label_file": None,
-    #  "cut_file": None},
-    # {
-    #     "audio_file":"data/raw_studio/Haydn cd2 n.41, 58/haydn_41_58.wav",
-    #     "man_label_file": None,
-    #     "cut_file": None
-    # }
+    {"audio_file": "data/raw_studio/Daniel Barenboim - Beethoven Concerto for Violin and Orchestra in D Major, Op. 61 (2017)/beethoven_violin_studio.wav",
+     "man_label_file": None,
+     "cut_file": None},
+    {
+        "audio_file":"data/raw_studio/Haydn cd2 n.41, 58/haydn_41_58.wav",
+        "man_label_file": None,
+        "cut_file": None
+    }
 ]
 
 # The files in crossvalid are not used for training/valid purposes. Its a second round of validation with real examples
@@ -71,10 +71,24 @@ database_crossvalid = [
 ]
 
 
+def check_if_within_cutfile(input_i, df_man_label):
+    idx = 0
+    isInside = False
+    for row in df_man_label.iterrows():
+        if row[1][0] != "\\":
+            start = float(row[1][0])*SAMPLERATE
+            end = start+CHUNKSIZE*SAMPLERATE
+
+            if input_i > start and input_i < end:
+                isInside = True
+            idx+=1
+
+    return isInside
+
 def foreground_Separation(y, sr):
 
     # And compute the spectrogram magnitude and phase
-    S_full, phase = librosa.magphase(librosa.stft(y, n_fft=2000, hop_length=300))
+    S_full, phase = librosa.magphase(librosa.stft(y, n_fft=300, hop_length=100))
 
     S_filter = librosa.decompose.nn_filter(S_full,
                                            aggregate=np.median,
@@ -101,9 +115,61 @@ def foreground_Separation(y, sr):
 
     return S_foreground
 
+#########################################################################################################################
+# Create Train images
+#########################################################################################################################
 
 counter = 0
 for db in database:
+
+    sr_orig = librosa.core.get_samplerate(db["audio_file"])
+    
+    stream = librosa.stream(db["audio_file"], block_length=1, frame_length=sr_orig*CHUNKSIZE, hop_length=sr_orig*CHUNKSIZE)
+
+    if db["cut_file"] != None:
+        df_cutfile = pd.read_csv(db["cut_file"], sep="\t", header=None)
+
+    for idx, block_y in enumerate(stream):
+
+        if db["cut_file"] != None:
+            skipp = check_if_within_cutfile(idx*CHUNKSIZE, df_cutfile)
+        else:
+            skipp == False
+
+        if not skipp:
+            # get random cough sample
+            rand_idx_cough = random.randint(0,len(coughexamples_files)-1)
+            random_cough_file = coughexamples_files[rand_idx_cough]
+
+            # open the random cough file
+            y_cough, sr_cough = librosa.load(random_cough_file, sr=SAMPLERATE, mono=True)
+
+            y = librosa.resample(block_y, sr_orig, SAMPLERATE)
+
+            pre_gap = [0] * random.randint(0, 0.5*SAMPLERATE) # up to half a second pre gap possible
+            y_cough = np.append(pre_gap, y_cough)
+            y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
+            if len(y_cough) < CHUNKSIZE * SAMPLERATE:
+                y_cough = np.append(y_cough,[0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
+
+            # print(y_cough)
+            print(len(y), len(y_cough))
+            # add the two audios and save
+            y_incl = 1 * np.array(y) + y_cough
+
+            Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
+            Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
+            matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough)
+            matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough)
+
+            counter+=1
+
+
+#########################################################################################################################
+# Create Train images
+#########################################################################################################################
+counter = 0
+for db in database_crossvalid:
 
     db["audio_file"]
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
@@ -112,31 +178,9 @@ for db in database:
 
     for block_y in stream:
 
-        # get random cough sample
-        rand_idx_cough = random.randint(0,len(coughexamples_files)-1)
-        random_cough_file = coughexamples_files[rand_idx_cough]
-
-        # open the random cough file
-        y_cough, sr_cough = librosa.load(random_cough_file, sr=SAMPLERATE, mono=True)
-
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
-
-        pre_gap = [0] * random.randint(0, 0.5*SAMPLERATE) # up to half a second pre gap possible
-        y_cough = np.append(pre_gap, y_cough)
-        y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
-        if len(y_cough) < CHUNKSIZE * SAMPLERATE:
-            y_cough = np.append(y_cough,[0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
-
-        # print(y_cough)
-        print(len(y), len(y_cough))
-        # add the two audios and save
-        y_incl = 1 * np.array(y) + y_cough
-
-        Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
-        Sxx_no_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
-        matplotlib.image.imsave("data/cough_learn_histo/no_cough_{}.png".format(counter), Sxx_no_cough)
-        matplotlib.image.imsave("data/cough_learn_histo/cough_{}.png".format(counter), Sxx_cough)
+        
+        Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
+        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough)
 
         counter+=1
-
-
