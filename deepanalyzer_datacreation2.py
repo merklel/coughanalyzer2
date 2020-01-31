@@ -120,8 +120,8 @@ def foreground_Separation(y, sr):
 #########################################################################################################################
 
 counter = 0
-for db in database:
-
+for i_dbentry, db in enumerate(database):
+    print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
     
     stream = librosa.stream(db["audio_file"], block_length=1, frame_length=sr_orig*CHUNKSIZE, hop_length=sr_orig*CHUNKSIZE)
@@ -171,9 +171,10 @@ for db in database:
 # Create Train images
 #########################################################################################################################
 counter = 0
-for db in database_crossvalid:
+for i_dbentry, db in enumerate(database_crossvalid):
+    
+    print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
 
-    db["audio_file"]
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
     
     stream = librosa.stream(db["audio_file"], block_length=1, frame_length=sr_orig*CHUNKSIZE, hop_length=sr_orig*CHUNKSIZE)
