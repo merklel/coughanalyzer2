@@ -153,7 +153,7 @@ for i_dbentry, db in enumerate(database):
                 y_cough = np.append(y_cough,[0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
 
             # print(y_cough)
-            print(len(y), len(y_cough))
+            print("Number: {} / unkown".format(counter))
             # add the two audios and save
 
             if len(y) == len(y_cough):
