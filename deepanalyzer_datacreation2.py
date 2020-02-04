@@ -118,7 +118,6 @@ def foreground_Separation(y, sr):
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
-
 counter = 0
 for i_dbentry, db in enumerate(database):
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
@@ -168,7 +167,7 @@ for i_dbentry, db in enumerate(database):
 
 
 #########################################################################################################################
-# Create Train images
+# Create Crossvalid images
 #########################################################################################################################
 counter = 0
 for i_dbentry, db in enumerate(database_crossvalid):
@@ -184,6 +183,6 @@ for i_dbentry, db in enumerate(database_crossvalid):
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
         
         Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
-        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), cmap="gray")
+        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough, cmap="gray")
 
         counter+=1

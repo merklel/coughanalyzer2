@@ -3,11 +3,14 @@ import glob
 import librosa
 from scipy.fft import fft
 from scipy import signal
+import imageio
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import matplotlib.colors as cl
 import matplotlib
+from skimage.color import rgb2gray
+
 
 # Flag control ############################
 flag_pp = False
@@ -32,6 +35,8 @@ traindata = "temp12_short_0.3.p"
 shapeSxx = (1001, 107, 1)
 traindata = "temp13_16khz_short_0.3.p"
 
+shapeSxx = (151, 321, 1)
+
 # constants
 SAMPLERATE = 16000
 CHUNKSIZE = 2 # seconds
@@ -41,6 +46,9 @@ COUGH_FOLDER="data/cough_added"
 NO_COUGH_FOLDER="data/no_cough"
 MANUAL_COUGH="data/manual_cough"
 UNTOUCHED="data/untouched"
+
+IMAGES_TRAIN_FOLDER="data/cough_learn_histo/train"
+IMAGES_CROSSVALID_FOLDER="data/cough_learn_histo/crossvalid"
 
 # files to crossvalidate. these have not been used for training
 # CROSSVALID = "data/crossvalidation/Martha Argerich_ Ravel - Piano Concerto in G Major _ Nobel Prize Concert 2009 (152kbit_Opus)"
@@ -52,6 +60,9 @@ no_cough_files = glob.glob(NO_COUGH_FOLDER+"/*.wav")
 manual_cough_files = glob.glob(NO_COUGH_FOLDER+"/*.wav")
 untouched_files = glob.glob(UNTOUCHED+"/*.wav")
 crossvalid_files = glob.glob(CROSSVALID+"/*.wav")
+
+images_train = glob.glob(IMAGES_TRAIN_FOLDER+"/*.png")
+images_crossvalid = glob.glob(IMAGES_CROSSVALID_FOLDER+"/*.png")
 
 train_files = cough_files + no_cough_files
 np.random.shuffle(train_files)
@@ -141,13 +152,58 @@ if flag_pp:
     cache_dump = {"real_testX": real_testX,"real_testY":real_testY, "trainX": trainX, "trainY": trainY, "untouched_testX": untouched_testX,"crossvalids_testX": crossvalids_testX}
     pickle.dump(cache_dump, open(traindata, "wb"))
 
-cache_dump = pickle.load(open(traindata, "rb"))
-real_testX = cache_dump["real_testX"]
-real_testY = cache_dump["real_testY"]
-trainX = cache_dump["trainX"]
-trainY = cache_dump["trainY"]
-untouched_testX = cache_dump["untouched_testX"]
-crossvalids_testX = cache_dump["crossvalids_testX"]
+## Load from pickle
+load_old=False
+if load_old:
+    cache_dump = pickle.load(open(traindata, "rb"))
+    real_testX = cache_dump["real_testX"]
+    real_testY = cache_dump["real_testY"]
+    trainX = cache_dump["trainX"]
+    trainY = cache_dump["trainY"]
+    untouched_testX = cache_dump["untouched_testX"]
+    crossvalids_testX = cache_dump["crossvalids_testX"]
+
+
+## Load from images
+load_images=True
+if load_images:
+
+    np.random.shuffle(images_train)
+
+    trainYs = []
+    trainXs = []
+    for train_image in images_train:
+        image = imageio.imread(train_image)
+        image = rgb2gray(image)
+
+        trainXs.append(image)
+
+        if train_image.startswith("cough"):
+            truth = [1, 0]
+
+        if "no_cough" in train_image:
+            truth = [0, 1]
+        else:
+            truth = [1, 0]
+
+        trainYs.append(truth)
+
+    trainX = np.stack(trainXs)
+    trainY = np.stack(trainYs)
+
+    crossvalid_trainXs = []
+    standard_shape = rgb2gray(imageio.imread(images_crossvalid[0])).shape
+    print(standard_shape)
+    for im in images_crossvalid:
+        image = imageio.imread(im)
+        image = rgb2gray(image)
+
+        if image.shape == standard_shape:
+            crossvalid_trainXs.append(image)
+
+    crossvalids_testX = np.stack(crossvalid_trainXs)
+    untouched_testX = np.array([])
+    real_testX = np.array([])
 
 
 #testX = trainX[1700:2600]
@@ -163,10 +219,10 @@ crossvalids_testX = cache_dump["crossvalids_testX"]
 # untouched_testX = untouched_testX[:, 100:251, 0:88]
 # crossvalids_testX = crossvalids_testX[:, 100:251, 0:88]
 
-testX = trainX[0:400]
-testY = trainY[0:400]
-trainX = trainX[400:]
-trainY = trainY[400:]
+testX = trainX[0:1000]
+testY = trainY[0:1000]
+trainX = trainX[1000:]
+trainY = trainY[1000:]
 
 #standardize
 trainX = (trainX - np.mean(trainX)) / np.std(trainX)
@@ -246,23 +302,23 @@ plt.legend()
 plt.savefig("erg.pdf")
 
 #### predict real manually found cough
-print("##### predict manually found cough #########")
-H2 = m1.test_on_batch(real_testX, real_testY)
-print(m1.metrics_names)
-print(H2)
-for idx, line in enumerate(m1.predict(real_testX)):
-    print(idx, line)
+# print("##### predict manually found cough #########")
+# H2 = m1.test_on_batch(real_testX, real_testY)
+# print(m1.metrics_names)
+# print(H2)
+# for idx, line in enumerate(m1.predict(real_testX)):
+#     print(idx, line)
 
 
-print("##### predict unbearbeitet #########")
-# H3 = m1.predict(untouched_testX)
-# print(H3)
-f=open("untouched_labels.txt", "w")
-for idx, line in enumerate(m1.predict(untouched_testX)):
-    print(idx, line)
-    if line[1] > 0.5:
-        f.write("{}\t{}\t{}\n".format(idx*2, (idx*2)+2, line[1]))
-f.close()
+# print("##### predict unbearbeitet #########")
+# # H3 = m1.predict(untouched_testX)
+# # print(H3)
+# f=open("untouched_labels.txt", "w")
+# for idx, line in enumerate(m1.predict(untouched_testX)):
+#     print(idx, line)
+#     if line[1] > 0.5:
+#         f.write("{}\t{}\t{}\n".format(idx*2, (idx*2)+2, line[1]))
+# f.close()
 
 print("##### predict crossvalid #########")
 print("* analyzing: {}".format(CROSSVALID))
