@@ -47,17 +47,17 @@ database = [
         "cut_file": None
     },
     {
-    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 1 - Symphonies/beethoven_symphonies.mp3",
+    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 1 - Symphonies/beethoven_symphonies.wav",
     "man_label_file": None,
     "cut_file": None
     },
     {
-    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 2 - Concertos/beethoven_concertos.mp3",
+    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 2 - Concertos/beethoven_concertos.wav",
     "man_label_file": None,
     "cut_file": None
     },
     {
-    "audio_file": "data/raw_studio/mozart/mozart_cd_1bis10.mp3",
+    "audio_file": "data/raw_studio/mozart/mozart_cd_1bis10.wav",
     "man_label_file": None,
     "cut_file": None
     }
