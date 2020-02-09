@@ -38,16 +38,28 @@ database = [
     {"audio_file": "data/raw_youtube/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/Joseph Haydn - Piano Concerto No. 11 in D major, Hob. XVIII_11 - Mikhail Pletnev (152kbit_Opus).wav",
      "man_label_file": "data/raw_youtube/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/manual_labeled.txt",
      "cut_file": "data/raw_youtube/Joseph Haydn - Piano Concerto No  11 in D major, Hob  XVIII_11 - Mikhail Pletnev/cut_file.txt"},
-    {"audio_file": "data/raw_studio/shostakovich CD08 - Symphony 10/shostakovich_10_studio.wav",
-     "man_label_file": None,
-     "cut_file": None},
-    {"audio_file": "data/raw_studio/Daniel Barenboim - Beethoven Concerto for Violin and Orchestra in D Major, Op. 61 (2017)/beethoven_violin_studio.wav",
+    {"audio_file": "data/raw_studio/shostakovich/- Symphony 10/shostakovich_10_studio.wav",
      "man_label_file": None,
      "cut_file": None},
     {
         "audio_file":"data/raw_studio/Haydn cd2 n.41, 58/haydn_41_58.wav",
         "man_label_file": None,
         "cut_file": None
+    },
+    {
+    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 1 - Symphonies/beethoven_symphonies.mp3",
+    "man_label_file": None,
+    "cut_file": None
+    },
+    {
+    "audio_file": "data/raw_studio/Complete Beethoven Edition Vol. 2 - Concertos/beethoven_concertos.mp3",
+    "man_label_file": None,
+    "cut_file": None
+    },
+    {
+    "audio_file": "data/raw_studio/mozart/mozart_cd_1bis10.mp3",
+    "man_label_file": None,
+    "cut_file": None
     }
 ]
 
