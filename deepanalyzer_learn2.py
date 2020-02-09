@@ -36,6 +36,7 @@ shapeSxx = (1001, 107, 1)
 traindata = "temp13_16khz_short_0.3.p"
 
 shapeSxx = (151, 321, 1)
+shapeSxx=(251, 64, 1)
 
 # constants
 SAMPLERATE = 16000
@@ -241,10 +242,10 @@ crossvalids_testX = crossvalids_testX.reshape(crossvalids_testX.shape + (1,))
 
 EPOCHS=100
 BATCHSIZE=20
-da = 0.35
+da = 0.09
 m1 = keras.Sequential()
-m1.add(keras.layers.Conv2D(5, kernel_size=(2,2), strides=1, activation='relu', input_shape=shapeSxx)) # kernel_regularizer=keras.regularizers.l1_l2()
-m1.add(keras.layers.Conv2D(5, kernel_size=(3,3), strides=1, activation='relu'))
+m1.add(keras.layers.Conv2D(5, kernel_size=(3,3), strides=1, activation='relu', input_shape=shapeSxx)) # kernel_regularizer=keras.regularizers.l1_l2()
+m1.add(keras.layers.Conv2D(5, kernel_size=(2,2), strides=1, activation='relu'))
 m1.add(keras.layers.MaxPooling2D((20,20)))
 
 m1.add(keras.layers.Flatten())
@@ -327,8 +328,8 @@ print("* analyzing: {}".format(CROSSVALID))
 f=open("untouched_labels_crossvalid.txt", "w")
 for idx, line in enumerate(m1.predict(crossvalids_testX)):
     print(idx, line)
-    if line[1] > 0.6:
-        f.write("{}\t{}\t{}\n".format(idx*2, (idx*2)+2, line[1]))
+    #if line[1] > 0.6:
+    f.write("{}\t{}\t{}\t{}\n".format(idx*CHUNKSIZE, (idx*CHUNKSIZE)+2, line[0], line[1]))
 f.close()
 
 

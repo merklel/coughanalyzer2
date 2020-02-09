@@ -11,6 +11,7 @@ from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 import os
 import random
+from scipy import signal
 import math
 import glob
 import pickle
@@ -21,7 +22,12 @@ SAMPLERATE = 16000
 CHUNKSIZE = 2 # seconds
 
 # Folders
+# raw cough examples
 FOLDER_COUGHS = "data/coughexamples/"
+
+# augmented cough examples
+FOLDER_COUGHS = "data/coughexamples_changed/"
+
 coughexamples_files = glob.glob(FOLDER_COUGHS+"*.wav")
 
 # These files go into the learning and valid
@@ -85,6 +91,11 @@ def check_if_within_cutfile(input_i, df_man_label):
 
     return isInside
 
+
+def spectogramm(y, sr):
+    fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.1), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
+    return Sxx
+
 def foreground_Separation(y, sr):
 
     # And compute the spectrogram magnitude and phase
@@ -118,6 +129,8 @@ def foreground_Separation(y, sr):
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
+feature_function = spectogramm
+#feature_function = foreground_Separation
 counter = 0
 for i_dbentry, db in enumerate(database):
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
@@ -149,7 +162,7 @@ for i_dbentry, db in enumerate(database):
             y_cough = np.append(pre_gap, y_cough)
             y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
             if len(y_cough) < CHUNKSIZE * SAMPLERATE:
-                y_cough = np.append(y_cough,[0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
+                y_cough = np.append(y_cough, [0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
 
             # print(y_cough)
             print("Number: {} / unkown".format(counter))
@@ -158,8 +171,8 @@ for i_dbentry, db in enumerate(database):
             if len(y) == len(y_cough):
                 y_incl = 1 * np.array(y) + y_cough
 
-                Sxx_cough = foreground_Separation(y_incl, sr=SAMPLERATE)
-                Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
+                Sxx_cough = feature_function(y_incl, sr=SAMPLERATE)
+                Sxx_no_cough = feature_function(y, sr=SAMPLERATE)
                 matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
                 matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
 
@@ -182,7 +195,7 @@ for i_dbentry, db in enumerate(database_crossvalid):
 
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
         
-        Sxx_no_cough = foreground_Separation(y, sr=SAMPLERATE)
+        Sxx_no_cough = feature_function(y, sr=SAMPLERATE)
         matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough, cmap="gray")
 
         counter+=1
