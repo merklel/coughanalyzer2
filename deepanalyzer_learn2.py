@@ -10,6 +10,7 @@ import pickle
 import matplotlib.colors as cl
 import matplotlib
 from skimage.color import rgb2gray
+import os
 
 
 # Flag control ############################
@@ -72,86 +73,6 @@ np.random.shuffle(train_files)
 # shapex = 24347
 # shapeSxx = (251, 97, 1)
 
-if flag_pp:
-    trainYs = []
-    trainXs = []
-
-    ################## Syntetic cough training ####################################################
-    for idx, ncf in enumerate(train_files):
-        x, sr = librosa.load(ncf, sr=SAMPLERATE, mono=True)
-
-        # x_fft = fft(x)
-        # N = len(x)
-        # x_fft = 2.0 / N * np.abs(x_fft[0:N // 2])
-        #
-        # x_in = np.append(x, x_fft)
-        # trainX = np.vstack((trainX, x_in))
-
-        fxx, txx, Sxx = signal.spectrogram(x, SAMPLERATE, window=('tukey', 0.1), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
-        f, axs = plt.subplots(1,1)
-        #axs.pcolormesh(txx, fxx, Sxx, norm=cl.LogNorm())
-
-        # x_in = Sxx.flatten()
-        # trainX = np.vstack((trainX, x_in))
-        trainXs.append(Sxx)
-
-        if "no_cough" in ncf:
-            truth = [1, 0]
-            # f.savefig("data/cough_learn_histo/no_cough_{}.png".format(idx))
-            #matplotlib.image.imsave("data/cough_learn_histo/no_cough_{}.png".format(idx), Sxx)
-        if "cough_added" in ncf:
-            truth = [0, 1]
-            # f.savefig("data/cough_learn_histo/cough_{}.png".format(idx))
-            #matplotlib.image.imsave("data/cough_learn_histo/cough_{}.png".format(idx), Sxx)
-        # plt.close(f)
-        trainYs.append(truth)
-
-    trainX = np.stack(trainXs)
-    trainY = np.stack(trainYs)
-
-
-    ################## Manually found cough ####################################################
-    # real_testX = np.empty(shape=(shapex,))
-    real_testXs = []
-    real_testYs = []
-    for mc in manual_cough_files[0:44]:
-        x, sr = librosa.load(mc, sr=SAMPLERATE, mono=True)
-
-        # x_fft = fft(x)
-        # N = len(x)
-        # x_fft = 2.0 / N * np.abs(x_fft[0:N // 2])
-        #
-        # x_in = np.append(x, x_fft)
-        # real_testX = np.vstack((real_testX, x_in))
-
-        fxx, txx, Sxx = signal.spectrogram(x, SAMPLERATE, window=('tukey', 0.1), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
-
-        # x_in = Sxx.flatten()
-        # real_testX = np.vstack((real_testX, x_in))
-
-        #real_testY = np.vstack((real_testY, [0, 1]))
-        real_testYs.append([0, 1])
-        real_testXs.append(Sxx)
-    real_testX = np.stack(real_testXs)
-    real_testY = np.stack(real_testYs)
-
-    untouched = []
-    for af in untouched_files[0:1465]:
-        x, sr = librosa.load(af, sr=SAMPLERATE, mono=True)
-        fxx, txx, Sxx = signal.spectrogram(x, SAMPLERATE, window=('tukey', 0.1), nperseg=500, noverlap=0,scaling="spectrum", mode="magnitude")
-        untouched.append(Sxx)
-    untouched_testX  = np.stack(untouched)
-
-    crossvalids = []
-    for af in crossvalid_files:
-        x, sr = librosa.load(af, sr=SAMPLERATE, mono=True)
-        fxx, txx, Sxx = signal.spectrogram(x, SAMPLERATE, window=('tukey', 0.1), nperseg=500, noverlap=0,scaling="spectrum", mode="magnitude")
-        crossvalids.append(Sxx)
-    crossvalids_testX  = np.stack(crossvalids)
-
-    # X_and_label = np.concatenate((trainX, trainY),axis=1)
-    cache_dump = {"real_testX": real_testX,"real_testY":real_testY, "trainX": trainX, "trainY": trainY, "untouched_testX": untouched_testX,"crossvalids_testX": crossvalids_testX}
-    pickle.dump(cache_dump, open(traindata, "wb"))
 
 ## Load from pickle
 load_old=False
@@ -192,6 +113,11 @@ if load_images:
     trainX = np.stack(trainXs)
     trainY = np.stack(trainYs)
 
+
+    #######################################################################
+    # load crossvalid images
+    ######################################################################
+    crossvalid_chunk_numbers = [int(os.path.split(ic)[1].split("_")[1].split(".")[0]) for ic in images_crossvalid]
     crossvalid_trainXs = []
     standard_shape = rgb2gray(imageio.imread(images_crossvalid[0])).shape
     print(standard_shape)
@@ -241,30 +167,34 @@ crossvalids_testX = crossvalids_testX.reshape(crossvalids_testX.shape + (1,))
 
 
 EPOCHS=100
-BATCHSIZE=20
-da = 0.09
+BATCHSIZE=150
+da = 0.1
 m1 = keras.Sequential()
-m1.add(keras.layers.Conv2D(5, kernel_size=(3,3), strides=1, activation='relu', input_shape=shapeSxx)) # kernel_regularizer=keras.regularizers.l1_l2()
+m1.add(keras.layers.Conv2D(20, kernel_size=(8,2), strides=1, activation='relu', input_shape=shapeSxx)) # kernel_regularizer=keras.regularizers.l1_l2()
+m1.add(keras.layers.Conv2D(20, kernel_size=(2,2), strides=1, activation='relu'))
+m1.add(keras.layers.AveragePooling2D((2,2)))
+m1.add(keras.layers.Conv2D(20, kernel_size=(4,4), strides=1, activation='relu'))
+m1.add(keras.layers.Conv2D(20, kernel_size=(2,2), strides=1, activation='relu'))
+m1.add(keras.layers.AveragePooling2D((2,2)))
+m1.add(keras.layers.Conv2D(5, kernel_size=(3,3), strides=1, activation='relu'))
 m1.add(keras.layers.Conv2D(5, kernel_size=(2,2), strides=1, activation='relu'))
-m1.add(keras.layers.MaxPooling2D((20,20)))
+m1.add(keras.layers.AveragePooling2D((4*2,2)))
 
 m1.add(keras.layers.Flatten())
-m1.add(keras.layers.BatchNormalization())
+#m1.add(keras.layers.BatchNormalization())
 
-#m1.add(keras.layers.Dense(20, activation='relu'))
-#m1.add(keras.layers.Dense(20, activation='relu'))
 
 #m1.add(keras.layers.Dropout(0.1))
 #m1.add(keras.layers.BatchNormalization())
+m1.add(keras.layers.Dense(30, activation='relu'))
+m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.Dense(20, activation='relu'))
+m1.add(keras.layers.Dropout(da))
 m1.add(keras.layers.Dense(10, activation='relu'))
 m1.add(keras.layers.Dropout(da))
 m1.add(keras.layers.Dense(5, activation='relu'))
 m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(5, activation='relu'))
-m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(5, activation='relu'))
-m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.BatchNormalization())
+#m1.add(keras.layers.BatchNormalization())
 m1.add(keras.layers.Dense(2, activation='softmax'))
 #m1.add(keras.layers.Dropout(0.1))
 m1.summary()
@@ -329,7 +259,7 @@ f=open("untouched_labels_crossvalid.txt", "w")
 for idx, line in enumerate(m1.predict(crossvalids_testX)):
     print(idx, line)
     #if line[1] > 0.6:
-    f.write("{}\t{}\t{}\t{}\n".format(idx*CHUNKSIZE, (idx*CHUNKSIZE)+2, line[0], line[1]))
+    f.write("{}\t{}\t{}\t{}\n".format(crossvalid_chunk_numbers[idx]*CHUNKSIZE, (crossvalid_chunk_numbers[idx]*CHUNKSIZE)+2, line[0], line[1]))
 f.close()
 
 

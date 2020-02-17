@@ -16,6 +16,7 @@ import math
 import glob
 import pickle
 import matplotlib
+import multiprocessing
 
 # settings
 SAMPLERATE = 16000
@@ -103,10 +104,19 @@ def check_if_within_cutfile(input_i, df_man_label):
 
     return isInside
 
-
 def spectogramm(y, sr):
-    fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.1), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
-    return Sxx
+    fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.2), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
+    
+    # normalize Sxx
+    nSxx = abs(Sxx - np.mean(Sxx)) / np.std(Sxx)
+    
+    #sum_nSXX = np.sum(nSxx)
+    mean_nSXX = np.mean(nSxx)
+    #print(mean_nSXX)
+
+
+    return nSxx, mean_nSXX
+
 
 def foreground_Separation(y, sr):
 
@@ -122,9 +132,9 @@ def foreground_Separation(y, sr):
     margin_i, margin_v = 2, 10
     power = 3
 
-    mask_i = librosa.util.softmask(S_filter,
-                                   margin_i * (S_full - S_filter),
-                                   power=power)
+    #mask_i = librosa.util.softmask(S_filter,
+    #                               margin_i * (S_full - S_filter),
+    #                               power=power)
 
     mask_v = librosa.util.softmask(S_full - S_filter,
                                    margin_v * S_filter,
@@ -136,14 +146,23 @@ def foreground_Separation(y, sr):
     S_foreground = mask_v * S_full
     #S_background = mask_i * S_full
 
-    return S_foreground
+    # normalize
+    nS_full = abs(S_full - np.mean(S_full)) / np.std(S_full)
+    nS_foreground = abs(S_foreground - np.mean(S_foreground)) / np.std(S_foreground)
+    
+    m = np.mean(nS_full)
+    #print(m)
+
+    return nS_foreground, m
 
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
+THRESHOLD_NOT_USE = 0.4
+# feature_function = spectogramm
 feature_function = spectogramm
-#feature_function = foreground_Separation
 counter = 0
+#database=[]
 for i_dbentry, db in enumerate(database):
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
@@ -183,12 +202,15 @@ for i_dbentry, db in enumerate(database):
             if len(y) == len(y_cough):
                 y_incl = 1 * np.array(y) + y_cough
 
-                Sxx_cough = feature_function(y_incl, sr=SAMPLERATE)
-                Sxx_no_cough = feature_function(y, sr=SAMPLERATE)
-                matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
-                matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
+                Sxx_cough, mean_nSXX_cough = feature_function(y_incl, sr=SAMPLERATE)
+                Sxx_no_cough, mean_nSXX_no_cough = feature_function(y, sr=SAMPLERATE)
 
-                counter+=1
+
+                if mean_nSXX_no_cough < THRESHOLD_NOT_USE:
+                    matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
+                    matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
+
+                counter+=1 #counting al chunks
 
 
 #########################################################################################################################
@@ -207,7 +229,9 @@ for i_dbentry, db in enumerate(database_crossvalid):
 
         y = librosa.resample(block_y, sr_orig, SAMPLERATE)
         
-        Sxx_no_cough = feature_function(y, sr=SAMPLERATE)
-        matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough, cmap="gray")
+        Sxx_no_cough, m = feature_function(y, sr=SAMPLERATE)
 
-        counter+=1
+        if m < THRESHOLD_NOT_USE:
+            matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough, cmap="gray")
+
+        counter+=1 # counting al chunks
