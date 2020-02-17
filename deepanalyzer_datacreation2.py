@@ -90,6 +90,10 @@ database_crossvalid = [
 ]
 
 
+
+#########################################################################################################################
+# Helpers
+#########################################################################################################################
 def check_if_within_cutfile(input_i, df_man_label):
     idx = 0
     isInside = False
@@ -116,7 +120,6 @@ def spectogramm(y, sr):
 
 
     return nSxx, mean_nSXX
-
 
 def foreground_Separation(y, sr):
 
@@ -158,7 +161,7 @@ def foreground_Separation(y, sr):
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
-THRESHOLD_NOT_USE = 0.4
+THRESHOLD_NOT_USE = 0.45
 # feature_function = spectogramm
 feature_function = spectogramm
 counter = 0
@@ -179,6 +182,11 @@ for i_dbentry, db in enumerate(database):
         else:
             skipp = False
 
+        if skipp:
+            sone="skipped"
+        else:
+            sone="not skipped"
+
         if not skipp:
             # get random cough sample
             rand_idx_cough = random.randint(0,len(coughexamples_files)-1)
@@ -195,11 +203,10 @@ for i_dbentry, db in enumerate(database):
             if len(y_cough) < CHUNKSIZE * SAMPLERATE:
                 y_cough = np.append(y_cough, [0] * ((CHUNKSIZE * SAMPLERATE) - len(y_cough)))
 
-            # print(y_cough)
-            print("Number: {} / unkown".format(counter))
-            # add the two audios and save
 
+            # add the two audios and save
             if len(y) == len(y_cough):
+                stwo="lens do match"
                 y_incl = 1 * np.array(y) + y_cough
 
                 Sxx_cough, mean_nSXX_cough = feature_function(y_incl, sr=SAMPLERATE)
@@ -207,10 +214,17 @@ for i_dbentry, db in enumerate(database):
 
 
                 if mean_nSXX_no_cough < THRESHOLD_NOT_USE:
+                    sthree="mean small enough"
                     matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
                     matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
+                else:
+                    sthree="mean too big"
+            else:
+                stwo="lens do not match"
 
-                counter+=1 #counting al chunks
+        
+        print("Number: {counter} / unkown. Status: {sone} \t {stwo} \t {sthree}".format(counter=counter, sone=sone, stwo=stwo, sthree=sthree))
+        counter+=1 #counting al chunks
 
 
 #########################################################################################################################
