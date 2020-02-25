@@ -26,9 +26,11 @@ CHUNKSIZE = 2 # seconds
 prefactor_volume = 0.25
 factor_volume = [0.2 * prefactor_volume, 0.25*prefactor_volume, 0.3*prefactor_volume]
 
-stretch_factors = [0.9, 0.95, 0.97, 1, 1.03, 1.05, 1.1]
+factor_volume = [0.25]
+
+stretch_factors = [0.9, 0.97, 1, 1.03, 1.1]
 #stretch_factors = [1]
-pitch_steps = [-4, -2, -1, 0, 1, 2, 4]
+pitch_steps = [-4, -1, 0, 1, 4]
 #pitch_steps = [0]
 
 files_cough_examples = glob.glob(FOLDER_COUGHS+"/*")

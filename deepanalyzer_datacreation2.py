@@ -17,6 +17,7 @@ import glob
 import pickle
 import matplotlib
 import multiprocessing
+import matplotlib.pyplot as plt
 
 # settings
 SAMPLERATE = 16000
@@ -24,7 +25,7 @@ CHUNKSIZE = 2 # seconds
 
 # Folders
 # raw cough examples
-FOLDER_COUGHS = "data/coughexamples/"
+# FOLDER_COUGHS = "data/coughexamples/"
 
 # augmented cough examples
 FOLDER_COUGHS = "data/coughexamples_changed/"
@@ -109,7 +110,23 @@ def check_if_within_cutfile(input_i, df_man_label):
     return isInside
 
 def spectogramm(y, sr):
-    fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.2), nperseg=500, noverlap=0, scaling="spectrum", mode="magnitude")
+    #fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.2), nperseg=2000, noverlap=0, scaling="spectrum", mode="magnitude")
+    #fxx, txx, Sxx = signal.spectrogram(y, sr, window=('tukey', 0.2), nperseg=200, noverlap=0, scaling="spectrum")
+    Sxx = librosa.stft(y, n_fft=2000)
+    
+    # normalize Sxx
+    nSxx = abs(Sxx - np.mean(Sxx)) / np.std(Sxx)
+    
+    #sum_nSXX = np.sum(nSxx)
+    mean_nSXX = np.mean(nSxx)
+    #print(mean_nSXX)
+
+
+    return nSxx, mean_nSXX
+
+def chromagram(y, sr):
+    
+    Sxx = librosa.feature.melspectrogram(y, n_fft=1000)
     
     # normalize Sxx
     nSxx = abs(Sxx - np.mean(Sxx)) / np.std(Sxx)
@@ -161,7 +178,7 @@ def foreground_Separation(y, sr):
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
-THRESHOLD_NOT_USE = 0.45
+THRESHOLD_NOT_USE = 1
 # feature_function = spectogramm
 feature_function = spectogramm
 counter = 0
@@ -197,7 +214,7 @@ for i_dbentry, db in enumerate(database):
 
             y = librosa.resample(block_y, sr_orig, SAMPLERATE)
 
-            pre_gap = [0] * random.randint(0, 0.5*SAMPLERATE) # up to half a second pre gap possible
+            pre_gap = [0] * random.randint(0, 0.8*SAMPLERATE) # up to 0.8 second pre gap possible
             y_cough = np.append(pre_gap, y_cough)
             y_cough = y_cough[0:CHUNKSIZE*SAMPLERATE]
             if len(y_cough) < CHUNKSIZE * SAMPLERATE:
@@ -209,16 +226,23 @@ for i_dbentry, db in enumerate(database):
                 stwo="lens do match"
                 y_incl = 1 * np.array(y) + y_cough
 
+                #plt.figure(figsize=(10,10))
+                #plt.plot(y_incl, label="y_incl")
+                #plt.plot(y, label="y")
+                #plt.plot(y_cough, label="y_cough")
+                #plt.legend()
+                #plt.savefig('data/cough_learn_histo/train/debug_{}.png'.format(counter))
+
                 Sxx_cough, mean_nSXX_cough = feature_function(y_incl, sr=SAMPLERATE)
                 Sxx_no_cough, mean_nSXX_no_cough = feature_function(y, sr=SAMPLERATE)
 
 
                 if mean_nSXX_no_cough < THRESHOLD_NOT_USE:
-                    sthree="mean small enough"
+                    sthree="mean({}) small enough".format(round(float(mean_nSXX_no_cough),2))
                     matplotlib.image.imsave("data/cough_learn_histo/train/no_cough_{}.png".format(counter), Sxx_no_cough, cmap="gray")
                     matplotlib.image.imsave("data/cough_learn_histo/train/cough_{}.png".format(counter), Sxx_cough, cmap="gray")
                 else:
-                    sthree="mean too big"
+                    sthree="mean({}) too big".format(round(float(mean_nSXX_no_cough),2))
             else:
                 stwo="lens do not match"
 
@@ -248,4 +272,5 @@ for i_dbentry, db in enumerate(database_crossvalid):
         if m < THRESHOLD_NOT_USE:
             matplotlib.image.imsave("data/cough_learn_histo/crossvalid/crossvalid_{}.png".format(counter), Sxx_no_cough, cmap="gray")
 
+        print("Number: {counter} / unkown.".format(counter=counter))
         counter+=1 # counting al chunks
