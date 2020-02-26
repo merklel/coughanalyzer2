@@ -185,8 +185,8 @@ def calculate_fft(y, sr=16000):
     y_fft = abs(y_fft[0:int(N/2)]) ** 2
 
 
-    ny_fft = abs((y_fft - np.mean(y_fft)) / np.std(y_fft))
-
+    #ny_fft = abs((y_fft - np.mean(y_fft)) / np.std(y_fft))
+    ny_fft = y_fft
     ny_fft = ny_fft / np.max(ny_fft)
 
     return ny_fft, np.mean(ny_fft)
