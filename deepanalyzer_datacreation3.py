@@ -176,8 +176,19 @@ def foreground_Separation(y, sr):
     return nS_foreground, m
 
 def calculate_fft(y, sr=16000):
-    y_fft = fft(y)
+
+    N=len(y)
+
+
+    y_fft = fft(y, n=CHUNKSIZE*sr)
+
+    y_fft = abs(y_fft[0:int(N/2)]) ** 2
+
+
     ny_fft = abs((y_fft - np.mean(y_fft)) / np.std(y_fft))
+
+    ny_fft = ny_fft / np.max(ny_fft)
+
     return ny_fft, np.mean(ny_fft)
 
 #########################################################################################################################
@@ -192,7 +203,7 @@ counter = 0
 # results
 ffts_cough = []
 ffts_no_cough = []
-database=[]
+
 for i_dbentry, db in enumerate(database):
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
@@ -274,7 +285,7 @@ pickle.dump(ffts_no_cough, open("data/train_ffts/train/ffts_no_cough.p", "wb"))
 #########################################################################################################################
 counter = 0
 ffts_crossvalid = []
-database_crossvalid = database_crossvalid[0:1]
+
 for i_dbentry, db in enumerate(database_crossvalid):
     
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
