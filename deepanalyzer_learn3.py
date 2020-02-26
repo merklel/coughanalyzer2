@@ -3,13 +3,12 @@ import glob
 import librosa
 from scipy.fft import fft
 from scipy import signal
-import imageio
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import matplotlib.colors as cl
 import matplotlib
-from skimage.color import rgb2gray
+#from skimage.color import rgb2gray
 import os
 from keras.preprocessing.image import ImageDataGenerator
 # from tensorflow.python.keras.callbacks import TensorBoard

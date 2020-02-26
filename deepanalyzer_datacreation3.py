@@ -90,7 +90,9 @@ database_crossvalid = [
     }
 ]
 
-
+# Restrict databases for testing
+database=database[0:2] # database[0:2]
+database_crossvalid=database_crossvalid
 
 #########################################################################################################################
 # Helpers
@@ -203,7 +205,6 @@ counter = 0
 # results
 ffts_cough = []
 ffts_no_cough = []
-
 for i_dbentry, db in enumerate(database):
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
     sr_orig = librosa.core.get_samplerate(db["audio_file"])
@@ -277,15 +278,15 @@ for i_dbentry, db in enumerate(database):
         print("Number: {counter} / unkown. Status: {sone} \t {stwo} \t {sthree}".format(counter=counter, sone=sone, stwo=stwo, sthree=sthree))
         counter+=1 #counting al chunks
 
-pickle.dump(ffts_cough, open("data/train_ffts/train/ffts_cough.p", "wb"))
-pickle.dump(ffts_no_cough, open("data/train_ffts/train/ffts_no_cough.p", "wb"))
+if len(database)>0:
+    pickle.dump(ffts_cough, open("data/train_ffts/train/ffts_cough.p", "wb"))
+    pickle.dump(ffts_no_cough, open("data/train_ffts/train/ffts_no_cough.p", "wb"))
 
 #########################################################################################################################
 # Create Crossvalid images
 #########################################################################################################################
 counter = 0
 ffts_crossvalid = []
-
 for i_dbentry, db in enumerate(database_crossvalid):
     
     print("Doing {}/{}. {}".format(i_dbentry, len(database), db))
@@ -308,4 +309,7 @@ for i_dbentry, db in enumerate(database_crossvalid):
 
         print("cvs number: {counter} / unkown.".format(counter=counter))
         counter+=1 # counting al chunks
-pickle.dump(ffts_crossvalid, open("data/train_ffts/crossvalid/ffts_crossvalid.p", "wb"))
+
+
+if len(database_crossvalid)>0:
+    pickle.dump(ffts_crossvalid, open("data/train_ffts/crossvalid/ffts_crossvalid.p", "wb"))
