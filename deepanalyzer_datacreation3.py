@@ -91,7 +91,7 @@ database_crossvalid = [
 ]
 
 # Restrict databases for testing
-database=database[0:2] # database[0:2]
+database=database # database[0:2]
 database_crossvalid=database_crossvalid
 
 #########################################################################################################################

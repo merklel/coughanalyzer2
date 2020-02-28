@@ -39,8 +39,12 @@ print("* loading data from hdd")
 shapeSxx = (16000,)
 
 ffts_cough = pickle.load(open(FFTS_COUGH, "rb"))
+ffts_cough = [f[0:4000] for f in ffts_cough]
+
 ffts_cough_Y = [[1,0]]*len(ffts_cough)
 ffts_no_cough = pickle.load(open(FFTS_NO_COUGH, "rb"))
+ffts_no_cough = [f[0:4000] for f in ffts_no_cough]
+
 ffts_no_cough_Y = [[0,1]]*len(ffts_no_cough)
 
 trainX = np.stack(ffts_cough + ffts_no_cough)
@@ -49,6 +53,7 @@ trainY = np.stack(ffts_cough_Y + ffts_no_cough_Y)
 ffts_crossvalid = pickle.load(open(FFTS_CROSSVALID, "rb"))
 print("n crossvalids: ", len(ffts_crossvalid))
 ffts_crossvalid = [fcv for fcv in ffts_crossvalid if fcv.shape == shapeSxx]
+ffts_crossvalid = [f[0:4000] for f in ffts_crossvalid]
 print("n crossvalids after filter: ", len(ffts_crossvalid))
 
 crossvalids_testX = np.stack(ffts_crossvalid)
@@ -60,6 +65,10 @@ trainX, trainY = shuffle(trainX, trainY)
 print("* slicing train/test images")
 n_test = 0.2
 idx_train_test = int(n_test*len(trainX))
+
+
+shapeSxx = (4000,)
+
 
 testX = trainX[0:idx_train_test]
 testY = trainY[0:idx_train_test]
@@ -80,12 +89,15 @@ print("shape trainY: ", trainY.shape)
 #crossvalids_testX = (crossvalids_testX - np.mean(crossvalids_testX)) / np.std(crossvalids_testX)
 
 # reshape to fit conv2D
-#print("* reshape images")
-#trainX = trainX.reshape(trainX.shape + (1,))
-#testX = testX.reshape(testX.shape + (1,))
-#crossvalids_testX = crossvalids_testX.reshape(crossvalids_testX.shape + (1,))
+print("* reshape images")
+trainX = trainX.reshape(trainX.shape + (1,))
+testX = testX.reshape(testX.shape + (1,))
+crossvalids_testX = crossvalids_testX.reshape(crossvalids_testX.shape + (1,))
 
-activity_reg = keras.regularizers.l2(0.00001)
+#kernel_constraint = keras.constraints.UnitNorm(axis=0)
+kernel_constraint = None
+
+activity_reg = keras.regularizers.l2(0.006)
 kernel_reg = keras.regularizers.l2(0.0001)
 b_reg=keras.regularizers.l2(0.0001)
 
@@ -95,20 +107,22 @@ b_reg=None
 
 EPOCHS=40
 BATCHSIZE=100
-da = 0.1
+da = 0
 m1 = keras.Sequential()
 
 activation = "relu"
 
-m1.add(keras.layers.Dense(100, input_shape=shapeSxx, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
+m1.add(keras.layers.Conv1D(filters=20, kernel_size=(100), input_shape=(4000,1)))
+m1.add(keras.layers.Conv1D(filters=20, kernel_size=(20)))
+
+m1.add(keras.layers.Flatten())
+#m1.add(keras.layers.Dense(3000, input_shape=shapeSxx, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg, kernel_constraint=kernel_constraint))
+#m1.add(keras.layers.Dropout(da))
+m1.add(keras.layers.Dense(50, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg, kernel_constraint=kernel_constraint))
 m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(100, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
+m1.add(keras.layers.Dense(50, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg, kernel_constraint=kernel_constraint))
 m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(100, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
-m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(100, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
-m1.add(keras.layers.Dropout(da))
-m1.add(keras.layers.Dense(100, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
+m1.add(keras.layers.Dense(50, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg, kernel_constraint=kernel_constraint))
 m1.add(keras.layers.Dropout(da))
 # m1.add(keras.layers.Dense(5, activation=activation, activity_regularizer=activity_reg, bias_regularizer=b_reg, kernel_regularizer=kernel_reg))
 # m1.add(keras.layers.Dropout(da))
@@ -120,7 +134,7 @@ m1.summary()
 
 #opt=keras.optimizers.SGD(learning_rate=0.03)
 #opt=keras.optimizers.Adam(lr=0.003)
-opt=keras.optimizers.Adam(lr=0.01)
+opt=keras.optimizers.Adam(lr=0.001)
 #opt=keras.optimizers.Adagrad()
 #opt=keras.optimizers.Nadam()
 m1.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["categorical_accuracy"])

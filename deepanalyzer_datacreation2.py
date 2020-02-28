@@ -175,12 +175,29 @@ def foreground_Separation(y, sr):
 
     return nS_foreground, m
 
+
+def percussive_filtering(y, sr):
+
+    Sxx = librosa.stft(y, n_fft=2000)
+
+    H, P = librosa.decompose.hpss(Sxx)
+
+    # normalize Sxx
+    nP = abs(P - np.mean(P)) / np.std(P)
+    
+    mean_nP = np.mean(nP)
+    #print(mean_nSXX)
+
+
+    return nP, mean_nP
+
+
 #########################################################################################################################
 # Create Train images
 #########################################################################################################################
 THRESHOLD_NOT_USE = 1
 # feature_function = spectogramm
-feature_function = spectogramm
+feature_function = percussive_filtering
 counter = 0
 #database=[]
 for i_dbentry, db in enumerate(database):
