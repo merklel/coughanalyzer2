@@ -4,7 +4,7 @@ DO LISTENERS OF MOZART COUGH MORE OFTEN DURING A CONCERT THAN LISTENERS OF BEETH
 I tried to give an answer to this exhilarating question using freely available data.
 
 ## Objective
-This tool aims to detect coughing in classical music concerts. This major annoyance (prior corona) is researched a quite a lot and not understood fully.
+This tool aims to detect coughing in classical music concerts. This major annoyance (prior corona) is researched on quite a lot and not understood fully.
 Goal is to detect coughs and relate them to the composer, the kind of music, and the athmosphere of the music.
 
 
@@ -18,5 +18,5 @@ The augmented data helps generating enough samples for the algorithm to learn, s
 
 
 ## Results
-Algoithm is learning to detect coughing during music, but false positives vs. true positives is not quite yet satisfying.
+Algoithm is learning to detect coughing during music, but false positives vs. true positives is not yet quite satisfying.
 
